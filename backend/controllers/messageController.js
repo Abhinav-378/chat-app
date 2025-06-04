@@ -16,6 +16,19 @@ const getMessages = async (req, res) => {
     }
 }
 
+const getGroupMessages = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const messages = await Message.find({ recipient: groupId })
+        .populate('sender', 'username')
+            .sort({ timestamp: 1 });
+        res.json(messages);
+        
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
 const sendMessage = async (req, res) => {
     try {
         const { recipient, content } = req.body;
@@ -31,7 +44,9 @@ const sendMessage = async (req, res) => {
     }
 }
 
+
 module.exports = {
     getMessages,
-    sendMessage
+    sendMessage,
+    getGroupMessages
 };
