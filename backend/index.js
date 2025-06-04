@@ -58,7 +58,19 @@ io.on('connection', (socket) => {
       console.error('Error saving message:', error);
     }
   });
+  socket.on('typing', (data)=>{
+    socket.to(data.recipient).emit('userTyping', {
+      sender: data.sender,
+      isTyping: true
+    })
+  })
 
+  socket.on('stopTyping', (data)=>{
+    socket.to(data.recipient).emit('userTyping', {
+      sender: data.sender,
+      isTyping: false
+    })
+  })
   socket.on('disconnect', () => {
     console.log('Client disconnected', socket.id);
   });
