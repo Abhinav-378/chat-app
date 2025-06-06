@@ -3,13 +3,23 @@ const mongoose = require("mongoose");
 const messageSchema = new mongoose.Schema({
     sender: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "User"
+        ref: "User",
+        required: true
     },
     recipient: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "User" 
+        refPath: 'recipientType',
+        required: true 
     },
-    content: String,
+    recipientType:{
+        type: String,
+        enum: ['User', 'Group'],
+        default: 'User'
+    },
+    content: {
+        type: String, 
+        required: true 
+    },
     timestamp: { 
         type: Date, 
         default: Date.now 
