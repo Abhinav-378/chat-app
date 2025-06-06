@@ -11,7 +11,7 @@ connectDB();
 const authRoutes = require('./routes/auth.routes.js');
 const userRoutes = require('./routes/user.routes.js');
 const messageRoutes = require('./routes/message.routes.js');
-
+const groupRoutes = require('./routes/group.routes.js');
 const jwt = require('jsonwebtoken');
 const Message = require('./models/message.model.js'); // Import the Message model
 
@@ -30,6 +30,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/groups', groupRoutes);
 
 io.on('connection', (socket) => {
   console.log('New Client connected')
@@ -37,6 +38,11 @@ io.on('connection', (socket) => {
   socket.on("join", (userId) => {
     console.log(`User ${userId} joined`);
     socket.join(userId);
+  });
+
+  socket.on("joinGroup", (groupId) => {
+    console.log(`User joined group ${groupId}`);
+    socket.join(`group:${groupId}`);
   });
 
   socket.on('private_message', async (msg) => {
@@ -58,6 +64,33 @@ io.on('connection', (socket) => {
       console.error('Error saving message:', error);
     }
   });
+
+  socket.on('groupMessage', async (msg) => {
+    try {
+      const message = new Message({
+        sender: msg.sender,
+        recipient: msg.recipient,
+        recipientType: 'Group',
+        content: msg.content
+      });
+      
+      await message.save();
+      // Await the populate operation
+      const populatedMessage = await message.populate('sender', 'username');
+      // console.log('Populated message:', populatedMessage);
+
+      io.to(`group:${msg.recipient}`).emit('newGroupMessage', {
+        ...populatedMessage.toJSON(),
+        sender: {
+          _id: populatedMessage.sender._id,
+          username: populatedMessage.sender.username
+        }
+      });
+    } catch (error) {
+      console.error('Error sending group message:', error);
+    }
+  })
+
   socket.on('typing', (data)=>{
     socket.to(data.recipient).emit('userTyping', {
       sender: data.sender,
