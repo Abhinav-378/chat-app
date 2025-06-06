@@ -18,7 +18,18 @@ const messageSchema = new mongoose.Schema({
     },
     content: {
         type: String, 
-        required: true 
+        required: false 
+    },
+    attachment: {
+        url: String,
+        filename: String,
+        mimeType: String,
+        public_id: String,
+        type:{
+            type: String,
+            enum: ['image', 'video', 'file', 'none'],
+            default: 'none'
+        }
     },
     timestamp: { 
         type: Date, 
