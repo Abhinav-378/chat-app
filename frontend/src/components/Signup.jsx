@@ -36,11 +36,11 @@ function Signup() {
           required
           className="border p-2 rounded"
         />
-        <button type="submit" className="bg-black text-white p-2 rounded hover:bg-gray-800">
+        <button type="submit" className="bg-black text-white p-2 rounded hover:bg-gray-800 cursor-pointer">
           Sign Up
         </button>
         <p className="text-center text-sm text-gray-600">
-          Already have an account? <Link to="/login" className="text-blue-600 hover:underline">Login</Link>
+          Already have an account? <Link to="/" className="text-blue-600 hover:underline">Login</Link>
         </p>
       </form>
     </div>

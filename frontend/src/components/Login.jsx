@@ -35,7 +35,7 @@ function Login() {
           className="border p-2 rounded"
           required
         />
-        <button type="submit" className="bg-black text-white p-2 rounded hover:bg-gray-800">
+        <button type="submit" className="bg-black text-white p-2 rounded hover:bg-gray-800 cursor-pointer">
           Login
         </button>
         <p className="text-center text-sm text-gray-600">
