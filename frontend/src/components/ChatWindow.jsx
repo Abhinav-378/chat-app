@@ -9,7 +9,50 @@ function ChatWindow({ selected, type }) {
   const [input, setInput] = useState("");
   const currentUser = JSON.parse(localStorage.getItem("user"));
   const chatRef = useRef();
+  const fileInputRef = useRef();
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("recipient", selected._id);
+    formData.append("recipientType", type === "group" ? "Group" : "User");
+
+    try {
+        const res = await API.post("/messages/upload", formData);
+        const fileData = res.data;
+        console.log("File uploaded successfully:", fileData);
+
+        // Don't emit socket event - server will handle broadcasting
+        if(type!=="group")setMessages(prev => [...prev, fileData]);
+    } catch (error) {
+        console.error("Error uploading file:", error);
+        alert("Failed to upload file");
+    }
+  }
+
+  const renderMessage = (message)=>{
+    if(message.attachment?.type!=="none") {
+      switch (message.attachment?.type) {
+        case 'image':
+          return <img src={message.attachment.url} alt={message.attachment.originalname} className="max-w-full rounded" />;
+        case 'video':
+            return <video src={message.attachment.url} controls className="max-w-full rounded" />;
+        case 'file':
+            return (
+                <a href={message.attachment.url} target="_blank" rel="noopener noreferrer" 
+                    className="flex items-center space-x-2  hover:underline">
+                    <span>📎</span>
+                    <span>{message.attachment.filename}</span>
+                </a>
+            );
+      }
+    }
+
+    return <p className="">{message.content}</p>;
+  }
   useEffect(() => {
     if (selected) {
       const endpoint =
@@ -30,25 +73,28 @@ function ChatWindow({ selected, type }) {
     if (!socket) return;
 
     socket.on("private_message", (msg) => {
-      console.log("Received private message:", msg);
-      // Check if message is from current chat
-      if (msg.sender === selected._id || msg.sender === currentUser._id) {
-        setMessages((prev) => [...prev, msg]);
-      }
+        console.log("Received private message:", msg);
+        // Check if message belongs to current chat
+        if (
+            (msg.sender._id === selected._id && msg.recipient === currentUser._id) ||
+            (msg.sender._id === currentUser._id && msg.recipient === selected._id)
+        ) {
+            setMessages(prev => [...prev, msg]);
+        }
     });
 
     socket.on("newGroupMessage", (msg) => {
-      console.log("Received group message:", msg);
-      if (type === 'group' && msg.recipient === selected._id) {
-        setMessages((prev) => [...prev, msg]);
-      }
+        console.log("Received group message:", msg);
+        if (type === 'group' && msg.recipient === selected._id) {
+            setMessages(prev => [...prev, msg]);
+        }
     });
 
     return () => {
-      socket.off("private_message");
-      socket.off("newGroupMessage"); 
+        socket.off("private_message");
+        socket.off("newGroupMessage");
     };
-  }, [selected]);
+}, [selected._id, currentUser._id, type]);
 
   useEffect(() => {
     if (!socket) return;
@@ -125,13 +171,15 @@ function ChatWindow({ selected, type }) {
                   }`}
                 >
                   <div
-                    className={`max-w-[70%] rounded-lg p-3 ${
+                    className={`max-w-[60%] rounded-lg p-3 ${
                       m.sender._id === currentUser._id
                         ? "bg-black text-white"
                         : "bg-gray-200"
                     }`}
                   >
-                    <p className="break-words">{m.content}</p>
+                    <div className="">
+                        {renderMessage(m)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -140,17 +188,19 @@ function ChatWindow({ selected, type }) {
               <div
                 key={i}
                 className={`flex ${
-                  m.sender === currentUser._id ? "justify-end" : "justify-start"
+                  m.sender === currentUser._id || m.sender._id ? "justify-end" : "justify-start"
                 }`}
               >
                 <div
-                  className={`max-w-[70%] rounded-lg p-3 ${
-                    m.sender === currentUser._id
+                  className={`max-w-[60%] rounded-lg p-3 ${
+                    m.sender === currentUser._id || m.sender._id === currentUser._id
                       ? "bg-black text-white "
                       : "bg-gray-200 "
                   }`}
                 >
-                  <p className="break-words">{m.content}</p>
+                  <div className="">
+                      {renderMessage(m)}
+                  </div>
                 </div>
               </div>
             ))}
@@ -164,6 +214,16 @@ function ChatWindow({ selected, type }) {
         )}
       </div>
       <div className="flex gap-2 mt-auto">
+        <button onClick={()=> fileInputRef.current.click()} className="p-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors cursor-pointer aspect-square">
+          📎
+        </button>
+        <input 
+          ref = {fileInputRef}
+          type="file"
+          onChange={handleFileUpload}
+          className="hidden"
+          accept="image/*,video/*,.pdf, .doc, .docx"
+        />
         <input
           type="text"
           placeholder="Type a message..."
